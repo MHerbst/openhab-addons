@@ -19,11 +19,14 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import org.eclipse.jetty.client.HttpClient;
 import org.eclipse.jetty.client.api.ContentResponse;
 import org.eclipse.jetty.client.util.StringContentProvider;
+import org.eclipse.jetty.http.HttpContent;
 import org.eclipse.jetty.http.HttpHeader;
 import org.openhab.binding.homematic.internal.common.HomematicConfig;
 import org.openhab.binding.homematic.internal.communicator.client.UnknownParameterSetException;
@@ -243,5 +246,25 @@ public class CcuGateway extends AbstractHomematicGateway {
         } catch (IllegalStateException | IOException e) {
             throw new IOException("The resource homematic/tclrega-scripts.xml could not be loaded!", e);
         }
+    }
+
+    @Override
+    protected void waitForGateway() {
+        logger.info("Wait until CCU is back again");
+        for (;;) {
+            try {
+                Thread.sleep(config.getTimeout() * 1000);
+                ContentResponse response = httpClient.GET("http://" + config.getGatewayAddress());
+                if (response.getStatus() == 503) {
+                    logger.trace("CCU not ready, try again in {} seconds", config.getTimeout());
+                } else {
+                    logger.info("CCU is back again");
+                    return;
+                }
+            } catch (InterruptedException | ExecutionException | TimeoutException e) {
+                logger.trace("CCU not accepting requests, try again in {} seconds", config.getTimeout());
+            }
+        }
+
     }
 }

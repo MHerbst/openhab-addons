@@ -930,10 +930,14 @@ public abstract class AbstractHomematicGateway implements RpcEventListener, Home
                 logger.warn("Connection lost on gateway '{}', cause: \"{}\"", id, cause);
                 gatewayAdapter.onConnectionLost();
             }
+            logger.info("Stopping servers and clients");
             stopServers();
             stopClients();
+            waitForGateway();
+            logger.info("Starting servers and clients again");
             startClients();
             startServers();
         }
     }
+    protected abstract void waitForGateway();
 }
